@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Order Scan</title>
 </head>
-<body style="font-family: Arial; text-align:center; padding:24px;">
+<body style="font-family: Arial, sans-serif; text-align:center; padding:24px;">
   <h2>Order gescand</h2>
   <p><b>Ordernummer:</b> A0-00-D7-U8-UK</p>
 
-  <button id="btn" style="font-size:18px; padding:14px 18px;">
+  <button id="btn" style="font-size:18px; padding:14px 18px; border:2px solid #000; background:#fff;">
     Tik om ping te horen
   </button>
 
@@ -19,10 +19,15 @@
 
   <script>
     const ping = document.getElementById('ping');
-    // probeer autoplay
+
+    // Probeer autoplay (wordt vaak geblokkeerd)
     ping.play().catch(() => {});
-    // fallback met tik
-    document.getElementById('btn').addEventListener('click', () => ping.play());
+
+    // Werkt ALTIJD na een tik
+    document.getElementById('btn').addEventListener('click', () => {
+      ping.currentTime = 0;
+      ping.play();
+    });
   </script>
 </body>
 </html>
