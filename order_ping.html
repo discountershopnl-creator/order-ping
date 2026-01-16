@@ -1,33 +1,123 @@
 <!doctype html>
-<html>
+<html lang="nl">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Order Scan</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 18px; }
+    .card { border: 3px solid #000; padding: 14px; border-radius: 10px; }
+    h2 { margin: 0 0 8px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    button {
+      border: 2px solid #000; background: #fff; padding: 12px 14px;
+      font-size: 16px; border-radius: 8px; cursor: pointer;
+    }
+    #sigWrap { margin-top: 14px; }
+    #sig {
+      width: 100%; height: 220px; border: 2px solid #000; border-radius: 10px;
+      touch-action: none; background: #fff;
+    }
+    .muted { font-size: 13px; opacity: .8; }
+  </style>
 </head>
-<body style="font-family: Arial, sans-serif; text-align:center; padding:24px;">
-  <h2>Order gescand</h2>
-  <p><b>Ordernummer:</b> A0-00-D7-U8-UK</p>
 
-  <button id="btn" style="font-size:18px; padding:14px 18px; border:2px solid #000; background:#fff;">
-    Tik om ping te horen
-  </button>
+<body>
+  <div class="card">
+    <h2>Order gescand</h2>
+    <p><b>Ordernummer:</b> A0-00-D7-U8-UK</p>
+    <p class="muted">Laat de klant hieronder tekenen. Klik daarna op <b>Opslaan</b>.</p>
 
-  <audio id="ping" preload="auto">
-    <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
-  </audio>
+    <div id="sigWrap">
+      <p><b>Handtekening klant</b></p>
+      <canvas id="sig"></canvas>
+    </div>
 
-  <script>
-    const ping = document.getElementById('ping');
+    <div class="row">
+      <button id="pingBtn">Tik voor ping 🔊</button>
+      <button id="clearBtn">Wissen</button>
+      <button id="saveBtn"><b>Opslaan (PNG)</b></button>
+    </div>
 
-    // Probeer autoplay (wordt vaak geblokkeerd)
-    ping.play().catch(() => {});
+    <audio id="ping" preload="auto">
+      <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
+    </audio>
+  </div>
 
-    // Werkt ALTIJD na een tik
-    document.getElementById('btn').addEventListener('click', () => {
-      ping.currentTime = 0;
-      ping.play();
-    });
-  </script>
+<script>
+  const ping = document.getElementById('ping');
+  document.getElementById('pingBtn').addEventListener('click', () => {
+    ping.currentTime = 0; ping.play().catch(()=>{});
+  });
+
+  // Canvas setup (high-DPI)
+  const canvas = document.getElementById('sig');
+  const ctx = canvas.getContext('2d');
+  function resizeCanvas(){
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.floor(rect.width * ratio);
+    canvas.height = Math.floor(rect.height * ratio);
+    ctx.setTransform(ratio,0,0,ratio,0,0);
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#000';
+  }
+  // set visible size first
+  canvas.style.width = '100%';
+  canvas.style.height = '220px';
+  requestAnimationFrame(resizeCanvas);
+  window.addEventListener('resize', resizeCanvas);
+
+  let drawing = false;
+  let lastX = 0, lastY = 0;
+
+  function getPos(e){
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches && e.touches[0];
+    const clientX = touch ? touch.clientX : e.clientX;
+    const clientY = touch ? touch.clientY : e.clientY;
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  }
+
+  function start(e){
+    drawing = true;
+    const p = getPos(e);
+    lastX = p.x; lastY = p.y;
+    e.preventDefault();
+  }
+  function move(e){
+    if(!drawing) return;
+    const p = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    lastX = p.x; lastY = p.y;
+    e.preventDefault();
+  }
+  function end(e){ drawing = false; e.preventDefault(); }
+
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', end);
+
+  canvas.addEventListener('touchstart', start, {passive:false});
+  canvas.addEventListener('touchmove', move, {passive:false});
+  canvas.addEventListener('touchend', end, {passive:false});
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+  });
+
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    // Export as PNG download
+    const link = document.createElement('a');
+    const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+    link.download = `handtekening_A0-00-D7-U8-UK_${ts}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+</script>
 </body>
 </html>
